@@ -1,0 +1,104 @@
+###***Importing Libraries***
+
+import numpy as np
+import pandas as pd
+import nltk
+import matplotlib.pyplot as plt
+import re
+import json
+
+!pip install urduhack
+import urduhack
+
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction import text
+
+
+### ***Dataset Import***
+
+from google.colab import files
+
+uploaded = files.upload()
+
+for f in uploaded.keys():
+  print('User uploaded file "{name}" with length {length} bytes'.format(
+      name=f, length=len(uploaded[f])  ))
+
+###***Checking The Dataset***
+
+Abusive = pd.read_excel('Urdu Abusive Dataset.csv')
+Abusive = Abusive.dropna()
+Abusive.head()
+
+len(Abusive)
+print(Abusive.shape)
+
+Abusive['comment_class'].value_counts()
+
+### ***Pre-Processing***
+
+***Removing StopWords***
+
+###Remove unwanted characters, stopwords, and format the text to create fewer 
+#nulls word embeddings###
+
+def removing_unwanted_data(text):
+    
+    # Format words and remove unwanted characters
+    text = re.sub(r'https?:\/\/.*[\r\n]*', '', text, flags=re.MULTILINE)
+    text = re.sub(r'\<a href', ' ', text)
+    text = re.sub(r'&amp;', '', text) 
+    text = re.sub(r'[_"\-;%()|+&=*%.,!?:#$@\[\]/]', ' ', text)
+    text = re.sub(r'<br />', ' ', text)
+    text = re.sub(r'\'', ' ', text)
+    
+    # remove stop words
+#     if remove_stopwords:
+#         text = text.split()
+#         stops = set(stopwords.words("english"))
+#         text = [w for w in text if not w in stops]
+#         text = " ".join(text)
+
+    # Tokenize each word
+    text =  nltk.WordPunctTokenizer().tokenize(text)
+        
+    return text
+
+Abusive['Clean_text']= list(map(removing_unwanted_data,Abusive.comment_text))
+Abusive.head()
+
+#**Lemmatization**
+
+Get lemma of the word from lookup table
+
+Args:
+
+
+
+**text (str):** Urdu tokenized text
+
+**lookup_path (str):** path to the lookup json file
+
+
+
+Returns:
+
+list: A list containing tuple of word and its lemma
+
+from urduhack.config import LEMMA_LOOKUP_TABLE_PATH
+WORD2LEMMA = None
+
+
+def lemma_lookup(text, lookup_path: str = LEMMA_LOOKUP_TABLE_PATH) -> list:
+    tokens = text
+    global WORD2LEMMA
+    if WORD2LEMMA is None:
+        with open(lookup_path) as file:
+            WORD2LEMMA = json.load(file)
+
+    return [WORD2LEMMA[word] if word in WORD2LEMMA else word for word in tokens]
+
+
+Abusive['txt'] = list(map(lemma_lookup,Abusive.Clean_text))
+
+Abusive.head()
